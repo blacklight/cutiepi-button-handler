@@ -1,0 +1,19 @@
+# Copy or symlink this systemd service to ~/.config/systemd/user
+# (create the folder if it doesn't exist).
+# Start with: systemctl --user start cutiepi-button-handler
+# Stop with: systemctl --user stop cutiepi-button-handler
+# Enable at startup with: systemctl --user cutiepi-button-handler
+# Disable at startup with: systemctl --user cutiepi-button-handler
+
+[Unit]
+Description=Manage screen on/off logic upon button press on the CutiePi
+After=graphical.target
+
+[Service]
+ExecStart=/home/pi/bin/cutiepi-button-handler
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+

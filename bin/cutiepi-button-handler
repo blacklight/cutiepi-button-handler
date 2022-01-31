@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+
+import os
+import re
+import subprocess
+
+from gi.repository import GLib
+from dbus import SessionBus
+from dbus.mainloop.glib import DBusGMainLoop
+
+previous_xrandr = 'xrandr --output DSI-1 --auto'
+
+
+def get_current_xrandr() -> str:
+    proc = subprocess.Popen(['unxrandr'], stdout=subprocess.PIPE)
+    return proc.communicate()[0].decode().strip()
+
+
+def is_display_on() -> bool:
+    proc = subprocess.Popen(['xrandr', '-q'], stdout=subprocess.PIPE)
+    out = proc.communicate()[0].decode().strip()
+    lines = [
+        line for line in out.split('\n')
+        if line.startswith('DSI-1 ')
+    ]
+
+    assert lines, 'Display DSI-1 not found'
+    m = re.search(r'^DSI-1\s+(connected\s+)?(primary\s+)?\d+x\d+\+\d+\+\d+', lines[0])
+    return m is not None
+
+
+def signal_handler(name, value):
+    global previous_xrandr
+    if name != 'button':
+        return
+
+    is_on = is_display_on()
+    if is_on:
+        previous_xrandr = get_current_xrandr()
+        os.system('xrandr --output DSI-1 --off')
+    else:
+        os.system(previous_xrandr)
+
+
+def main():
+    xrandr = get_current_xrandr()
+
+    loop = DBusGMainLoop()
+    bus = SessionBus(mainloop=loop)
+    bus.add_signal_receiver(
+        signal_handler, 'updateEvent',
+        'io.cutiepi.interface', path='/mcu'
+    )
+
+    loop = GLib.MainLoop()
+
+    try:
+        loop.run()
+    finally:
+        loop.quit()
+
+
+if __name__ == '__main__':
+    main()
