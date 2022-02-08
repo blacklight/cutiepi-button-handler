@@ -9,11 +9,21 @@ from dbus import SessionBus
 from dbus.mainloop.glib import DBusGMainLoop
 
 previous_xrandr = 'xrandr --output DSI-1 --auto'
+xinput_regex = re.compile(r'.*Capacitive TouchScreen\s+id=(\d+).*')
 
 
 def get_current_xrandr() -> str:
     proc = subprocess.Popen(['unxrandr'], stdout=subprocess.PIPE)
     return proc.communicate()[0].decode().strip()
+
+
+def get_touchscreen_id() -> int:
+    proc = subprocess.Popen(['xinput'], stdout=subprocess.PIPE)
+    for line in proc.communicate()[0].decode().split('\n'):
+        if m := xinput_regex.match(line):
+            return int(m.group(1))
+
+    assert 'Touchscreen device not found'
 
 
 def is_display_on() -> bool:
@@ -35,11 +45,15 @@ def signal_handler(name, _):
         return
 
     is_on = is_display_on()
+    touchscreen_id = get_touchscreen_id()
+
     if is_on:
         previous_xrandr = get_current_xrandr()
         os.system('xrandr --output DSI-1 --off')
+        os.system(f'xinput disable {touchscreen_id}')
     else:
         os.system(previous_xrandr)
+        os.system(f'xinput enable {touchscreen_id}')
 
 
 def main():
