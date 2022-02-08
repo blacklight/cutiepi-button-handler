@@ -29,7 +29,7 @@ def is_display_on() -> bool:
     return m is not None
 
 
-def signal_handler(name, value):
+def signal_handler(name, _):
     global previous_xrandr
     if name != 'button':
         return
@@ -43,8 +43,6 @@ def signal_handler(name, value):
 
 
 def main():
-    xrandr = get_current_xrandr()
-
     loop = DBusGMainLoop()
     bus = SessionBus(mainloop=loop)
     bus.add_signal_receiver(
